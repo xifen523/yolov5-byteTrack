@@ -8,8 +8,11 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Optional, List
+from attr import dataclass
 
 import cv2
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
@@ -17,11 +20,84 @@ FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
+from utils.datasets import LoadStreams, LoadImages, letterbox
 from utils.general import check_img_size, check_requirements, check_imshow, colorstr, non_max_suppression, \
     apply_classifier, scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
 from utils.plots import colors, plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
+
+
+@dataclass
+class Detection:
+    x_min: float
+    x_max: float
+    y_min: float
+    y_max: float
+    confidence: float
+    class_index: int
+    class_name: Optional[str]
+
+
+class Detector:
+
+    def __init__(self, weights: str, device: torch.device, input_size: int, confidence_threshold: float, iou_threshold: float) -> None:
+        self.input_size = input_size
+        self.device = device
+        self.confidence_threshold = confidence_threshold
+        self.iou_threshold = iou_threshold
+
+        self.model = attempt_load(weights=weights, map_location=device)
+        self.class_names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+
+    def detect(self, image: np.ndarray) -> List[Detection]:
+        with torch.no_grad():
+            image_tensor = self._pre_process(image=image)
+            raw_detections = self.model(image_tensor)
+            return self._post_process(raw_detections=raw_detections)
+
+    def _pre_process(self, image: np.ndarray) -> torch.Tensor:
+        img = letterbox(img=image, new_shape=self.input_size, stride=int(self.model.stride.max()))[0]
+        img = img[:, :, ::-1].transpose(2, 0, 1)
+        img = np.ascontiguousarray(img)
+        img = torch.from_numpy(img).to(self.device).float()
+        img /= 255.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+        return img
+
+    def _post_process(self, raw_detections: torch.Tensor, image: np.ndarray, image_tensor: torch.Tensor) -> List[Detection]:
+        detections = non_max_suppression(
+            prediction=raw_detections,
+            conf_thres=self.confidence_threshold,
+            iou_thres=self.iou_threshold
+        )[0]
+        detections[:, :4] = scale_coords(
+            img1_shape=image_tensor.shape[2:],
+            coords=detections[:, :4],
+            img0_shape=image.shape
+        ).round()
+
+        return [
+            self._post_process_detection(detection=detection)
+            for detection
+            in detections
+        ]
+
+    def _post_process_detection(self, detection: torch.Tensor) -> Detection:
+        detection = detection.cpu().numpy()
+        box = detection[:4]
+        confidence = float(detection[4])
+        class_index = int(detection[5])
+        class_name = self.class_names[class_index] if class_index < len(self.class_names) else None
+        return Detection(
+            x_min=int(box[0]),
+            y_min=int(box[1]),
+            x_max=int(box[2]),
+            y_max=int(box[3]),
+            confidence=confidence,
+            class_index=class_index,
+            class_name=class_name
+        )
 
 
 @torch.no_grad()
