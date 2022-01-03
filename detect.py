@@ -2,14 +2,26 @@
 """
 Run inference on images, videos, directories, streams, etc.
 
-Usage:
-    $ python path/to/detect.py --weights yolov5s.pt --source 0  # webcam
-                                                             img.jpg  # image
-                                                             vid.mp4  # video
-                                                             path/  # directory
-                                                             path/*.jpg  # glob
+Usage - sources:
+    $ python path/to/detect.py --weights yolov5s.pt --source 0              # webcam
+                                                             img.jpg        # image
+                                                             vid.mp4        # video
+                                                             path/          # directory
+                                                             path/*.jpg     # glob
                                                              'https://youtu.be/Zgi9g1ksQHc'  # YouTube
                                                              'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
+
+Usage - formats:
+    $ python path/to/detect.py --weights yolov5s.pt                 # PyTorch
+                                         yolov5s.torchscript        # TorchScript
+                                         yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
+                                         yolov5s.mlmodel            # CoreML (under development)
+                                         yolov5s_openvino_model     # OpenVINO (under development)
+                                         yolov5s_saved_model        # TensorFlow SavedModel
+                                         yolov5s.pb                 # TensorFlow protobuf
+                                         yolov5s.tflite             # TensorFlow Lite
+                                         yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
+                                         yolov5s.engine             # TensorRT
 """
 
 import argparse
@@ -38,7 +50,8 @@ from utils.torch_utils import select_device, time_sync
 @torch.no_grad()
 def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         source=ROOT / 'data/images',  # file/dir/URL/glob, 0 for webcam
-        imgsz=640,  # inference size (pixels)
+        data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
+        imgsz=(640, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
@@ -76,29 +89,28 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
     # Load model
     device = select_device(device)
-    model = DetectMultiBackend(weights, device=device, dnn=dnn)
-    stride, names, pt, jit, onnx = model.stride, model.names, model.pt, model.jit, model.onnx
+    model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data)
+    stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
     # Half
-    half &= pt and device.type != 'cpu'  # half precision only supported by PyTorch on CUDA
-    if pt:
+    half &= (pt or jit or engine) and device.type != 'cpu'  # half precision only supported by PyTorch on CUDA
+    if pt or jit:
         model.model.half() if half else model.model.float()
 
     # Dataloader
     if webcam:
         view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt and not jit)
+        dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt)
         bs = len(dataset)  # batch_size
     else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt and not jit)
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
         bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
-    if pt and device.type != 'cpu':
-        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.model.parameters())))  # warmup
+    model.warmup(imgsz=(1, 3, *imgsz), half=half)  # warmup
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
         t1 = time_sync()
@@ -205,6 +217,7 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path(s)')
     parser.add_argument('--source', type=str, default=ROOT / 'data/images', help='file/dir/URL/glob, 0 for webcam')
+    parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold')
