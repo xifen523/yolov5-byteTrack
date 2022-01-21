@@ -36,6 +36,7 @@ from utils.metrics import box_iou, fitness
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
 NUM_THREADS = min(8, max(1, os.cpu_count() - 1))  # number of YOLOv5 multiprocessing threads
+VERBOSE = str(os.getenv('VERBOSE', True)).lower() == 'true'  # global verbose mode
 
 torch.set_printoptions(linewidth=320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
@@ -44,10 +45,21 @@ cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with Py
 os.environ['NUMEXPR_MAX_THREADS'] = str(NUM_THREADS)  # NumExpr max threads
 
 
-def set_logging(name=None, verbose=True):
+def is_kaggle():
+    # Is environment a Kaggle Notebook?
+    try:
+        assert os.environ.get('PWD') == '/kaggle/working'
+        assert os.environ.get('KAGGLE_URL_BASE') == 'https://www.kaggle.com'
+        return True
+    except AssertionError:
+        return False
+
+
+def set_logging(name=None, verbose=VERBOSE):
     # Sets level and returns logger
-    for h in logging.root.handlers:
-        logging.root.removeHandler(h)  # remove all handlers associated with the root logger object
+    if is_kaggle():
+        for h in logging.root.handlers:
+            logging.root.removeHandler(h)  # remove all handlers associated with the root logger object
     rank = int(os.getenv('RANK', -1))  # rank in world for Multi-GPU trainings
     logging.basicConfig(format="%(message)s", level=logging.INFO if (verbose and rank in (-1, 0)) else logging.WARNING)
     return logging.getLogger(name)
