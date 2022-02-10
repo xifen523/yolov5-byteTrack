@@ -500,7 +500,7 @@ class AutoShape(nn.Module):
         #   torch:           = torch.zeros(16,3,320,640)  # BCHW (scaled to size=640, 0-1 values)
         #   multiple:        = [Image.open('image1.jpg'), Image.open('image2.jpg'), ...]  # list of images
 
-        t = [time_sync()]
+        t = [time.time()]
         p = next(self.model.parameters()) if self.pt else torch.zeros(1)  # for device and type
         autocast = self.amp and (p.device.type != 'cpu')  # Automatic Mixed Precision (AMP) inference
         if isinstance(imgs, torch.Tensor):  # torch
@@ -531,12 +531,12 @@ class AutoShape(nn.Module):
         x = np.stack(x, 0) if n > 1 else x[0][None]  # stack
         x = np.ascontiguousarray(x.transpose((0, 3, 1, 2)))  # BHWC to BCHW
         x = torch.from_numpy(x).to(p.device).type_as(p) / 255  # uint8 to fp16/32
-        t.append(time_sync())
+        t.append(time.time())
 
         with amp.autocast(enabled=autocast):
             # Inference
             y = self.model(x, augment, profile)  # forward
-            t.append(time_sync())
+            t.append(time.time())
 
             # Post-process
             y = non_max_suppression(y if self.dmb else y[0], self.conf, iou_thres=self.iou, classes=self.classes,
@@ -544,7 +544,7 @@ class AutoShape(nn.Module):
             for i in range(n):
                 scale_coords(shape1, y[i][:, :4], shape0[i])
 
-            t.append(time_sync())
+            t.append(time.time())
             return Detections(imgs, y, files, t, self.names, x.shape)
 
 
