@@ -86,11 +86,12 @@ class Decouple(nn.Module):
     # Decoupled convolution
     def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
-        c_ = min(c1, 256)
+        c_ = min(c1, 128)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1, s)
-        self.b1, self.b2, self.b3, self.b4 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(4))
+        self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
+        self.b3, self.b4 = (Conv(c_, c_, 1, s, autopad(1, p)) for _ in range(2))  # cls
         self.c1 = nn.Conv2d(c_, na * 5, (1, 1))  # box, obj outputs  (box, obj, cls...)
         self.c2 = nn.Conv2d(c_, na * nc, (1, 1))  # class outputs
 
@@ -328,7 +329,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='yolov5s6.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
