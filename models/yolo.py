@@ -92,8 +92,8 @@ class Decouple(nn.Module):
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1)
         c = [int(x + na * 5) for x in (c_ - na * 5) * torch.linspace(1, 0, 4)]  # linear channel descent
-        self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # va
-        # self.b1, self.b2, self.b3 = Conv(c_, c_ // 2, 3), Conv(c_ // 2, c_, 3), nn.Conv2d(c_, na * 5, 1)  # vb
+        # self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # va
+        self.b1, self.b2, self.b3 = Conv(c_, c_ // 2, 3), Conv(c_ // 2, c_, 3), nn.Conv2d(c_, na * 5, 1)  # vb
         # self.b1, self.b2, self.b3 = Conv(c_, c[1], 3), Conv(c[1], c[2], 3), nn.Conv2d(c[2], na * 5, 1)  # vc
         self.c1, self.c2, self.c3 = Conv(c_, c_, 1), Conv(c_, c_, 1), nn.Conv2d(c_, na * nc, 1)  # cls
 
