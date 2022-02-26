@@ -90,8 +90,8 @@ class Decouple(nn.Module):
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1, s)
-        self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
-        self.b3, self.b4 = (Conv(c_, c_, 1, s, autopad(1, p)) for _ in range(2))  # cls
+        self.b1, self.b2 = Conv(c_, c_, 3, s, autopad(3)), Conv(c_, c_, 3, s, autopad(3))  # box
+        self.b3, self.b4 = Conv(c_, c_, 1, s), Conv(c_, c_, 1, s)  # cls
         self.c1 = nn.Conv2d(c_, na * 5, (1, 1))  # box, obj outputs  (box, obj, cls...)
         self.c2 = nn.Conv2d(c_, na * nc, (1, 1))  # class outputs
 
@@ -102,20 +102,6 @@ class Decouple(nn.Module):
         x2 = self.c2(self.b3(self.b4(x)))
         y = torch.cat((x1.view(bs, self.na, 5, ny, nx), x2.view(bs, self.na, self.nc, ny, nx)), 2).view(bs, -1, ny, nx)
         return y
-
-
-class Decouple2(nn.Module):
-    # Decoupled convolution
-    def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
-        super().__init__()
-        c_ = min(c1, 256)
-        self.a = Conv(c1, c_, 1, s)
-        self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
-        self.c1 = nn.Conv2d(c_, (nc + 5) * na, (1, 1))  # box, obj outputs  (box, obj, cls...)
-
-    def forward(self, x):
-        x = self.a(x)
-        return self.c1(self.b1(self.b2(x)))
 
 
 class Model(nn.Module):
