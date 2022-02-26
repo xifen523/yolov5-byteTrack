@@ -43,7 +43,8 @@ class Detect(nn.Module):
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
-        self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
+        # self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
+        self.m = nn.ModuleList(Decouple(x, self.no * self.na) for x in ch)
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
@@ -79,6 +80,27 @@ class Detect(nn.Module):
         anchor_grid = (self.anchors[i].clone() * self.stride[i]) \
             .view((1, self.na, 1, 1, 2)).expand((1, self.na, ny, nx, 2)).float()
         return grid, anchor_grid
+
+
+class Decouple(nn.Module):
+    # Decoupled convolution
+    def __init__(self, c1, c2, k=1, s=1, p=None, nc=80, na=3):  # ch_in, ch_out, kernel, stride, padding, groups
+        super().__init__()
+        c_ = min(256, c1)
+        self.na = na  # number of anchors
+        self.nc = nc  # number of classes
+        self.a = Conv(c1, c_, 1, s)
+        self.b1, self.b2, self.b3, self.b4 = (Conv(c_, c_, 1, s, autopad(1, p)) for _ in range(4))
+        self.c1 = nn.Conv2d(c_, na * 5, (1, 1))  # box, obj outputs  (box, obj, cls...)
+        self.c2 = nn.Conv2d(c_, na * nc, (1, 1))  # class outputs
+
+    def forward(self, x):
+        bs, nc, ny, nx = x.shape  # BCHW
+        x = self.a(x)
+        x1 = self.c1(self.b1(self.b2(x)))
+        x2 = self.c2(self.b3(self.b4(x)))
+        y = torch.cat((x1.view(bs, self.na, 5, ny, nx), x2.view(bs, self.na, self.nc, ny, nx)), 2).view(bs, -1, ny, nx)
+        return y
 
 
 class Model(nn.Module):
@@ -198,10 +220,20 @@ class Model(nn.Module):
         # cf = torch.bincount(torch.tensor(np.concatenate(dataset.labels, 0)[:, 0]).long(), minlength=nc) + 1.
         m = self.model[-1]  # Detect() module
         for mi, s in zip(m.m, m.stride):  # from
-            b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
-            b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-            b.data[:, 5:] += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
-            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+            if type(mi) is Decouple:
+                b = mi.c1.bias.view(m.na, -1)
+                b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                mi.c1.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+
+                b = mi.c2.bias.data
+                b += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
+                mi.c2.bias = torch.nn.Parameter(b, requires_grad=True)
+
+            else:  # default
+                b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
+                b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                b.data[:, 5:] += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
+                mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
     def _print_biases(self):
         m = self.model[-1]  # Detect() module
