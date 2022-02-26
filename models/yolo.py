@@ -44,7 +44,7 @@ class Detect(nn.Module):
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
         # self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
-        self.m = nn.ModuleList(Decouple(x, self.nc, self.na) for x in ch)
+        self.m = nn.ModuleList(Decouple2(x, self.nc, self.na) for x in ch)
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
@@ -102,6 +102,20 @@ class Decouple(nn.Module):
         x2 = self.c2(self.b3(self.b4(x)))
         y = torch.cat((x1.view(bs, self.na, 5, ny, nx), x2.view(bs, self.na, self.nc, ny, nx)), 2).view(bs, -1, ny, nx)
         return y
+
+
+class Decouple2(nn.Module):
+    # Decoupled convolution
+    def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
+        super().__init__()
+        c_ = min(c1, 128)
+        self.a = Conv(c1, c_, 1, s)
+        self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
+        self.c1 = nn.Conv2d(c_, (nc + 5) * na, (1, 1))  # box, obj outputs  (box, obj, cls...)
+
+    def forward(self, x):
+        x = self.a(x)
+        return self.c1(self.b1(self.b2(x)))
 
 
 class Model(nn.Module):
@@ -229,6 +243,12 @@ class Model(nn.Module):
                 b = mi.c2.bias.data
                 b += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
                 mi.c2.bias = torch.nn.Parameter(b, requires_grad=True)
+
+            elif type(mi) is Decouple2:
+                b = mi.c1.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
+                b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                b.data[:, 5:] += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
+                mi.c1.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
             else:  # default
                 b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
