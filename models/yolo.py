@@ -86,7 +86,7 @@ class Decouple(nn.Module):
     # Decoupled convolution
     def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
-        c_ = c1 // 2
+        c_ = min(c1, 256)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1, s)
