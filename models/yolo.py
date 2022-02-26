@@ -44,7 +44,7 @@ class Detect(nn.Module):
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
         # self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
-        self.m = nn.ModuleList(Decouple(x, self.no * self.na) for x in ch)
+        self.m = nn.ModuleList(Decouple(x, self.nc, self.na) for x in ch)
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
@@ -84,7 +84,7 @@ class Detect(nn.Module):
 
 class Decouple(nn.Module):
     # Decoupled convolution
-    def __init__(self, c1, c2, k=1, s=1, p=None, nc=80, na=3):  # ch_in, ch_out, kernel, stride, padding, groups
+    def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
         c_ = c1 // 2
         self.na = na  # number of anchors
