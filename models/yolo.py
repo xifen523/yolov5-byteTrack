@@ -86,11 +86,12 @@ class Decouple(nn.Module):
     # Decoupled convolution
     def __init__(self, c1, nc=80, na=3):  # ch_in, num_classes, num_anchors
         super().__init__()
-        c_ = min(c1, (nc * na) // 2)
+        c_ = min(c1, nc * na)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1)
-        self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # box, obj
+        c = [int(x) for x in (c_ - na * 5) * torch.linspace(1, 0, 4)]
+        self.b1, self.b2, self.b3 = Conv(c_, c[1], 3), Conv(c[1], c[2], 3), nn.Conv2d(c[2], na * 5, 1)  # box, obj
         self.c1, self.c2, self.c3 = Conv(c_, c_, 1), Conv(c_, c_, 1), nn.Conv2d(c_, na * nc, 1)  # cls
 
     def forward(self, x):
