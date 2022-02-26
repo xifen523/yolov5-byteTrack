@@ -84,25 +84,21 @@ class Detect(nn.Module):
 
 class Decouple(nn.Module):
     # Decoupled convolution
-    def __init__(self, c1, nc=80, na=3, s=1):  # ch_in, num_classes, num_anchors, stride
+    def __init__(self, c1, nc=80, na=3):  # ch_in, num_classes, num_anchors
         super().__init__()
         c_ = min(c1, (nc * na) // 2)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
-        self.a = Conv(c1, c_, 1, s)
-        # self.b1, self.b2 = Conv(c_ // 2, c_, 3, s, autopad(3)), Conv(c_, c_ // 2, 3, s, autopad(3))  # box
-        self.b1, self.b2 = Conv(c_, c_, 3, s, autopad(3)), Conv(c_, c_, 3, s, autopad(3))  # box
-        self.b3, self.b4 = Conv(c_, c_, 1, s), Conv(c_, c_, 1, s)  # cls
-        self.c1 = nn.Conv2d(c_, na * 5, (1, 1))  # box, obj outputs  (box, obj, cls...)
-        self.c2 = nn.Conv2d(c_, na * nc, (1, 1))  # class outputs
+        self.a = Conv(c1, c_, 1)
+        self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # box, obj
+        self.c1, self.c2, self.c3 = Conv(c_, c_, 1), Conv(c_, c_, 1), nn.Conv2d(c_, na * nc, 1)  # cls
 
     def forward(self, x):
         bs, nc, ny, nx = x.shape  # BCHW
         x = self.a(x)
-        x1 = self.c1(self.b1(self.b2(x)))
-        x2 = self.c2(self.b3(self.b4(x)))
-        y = torch.cat((x1.view(bs, self.na, 5, ny, nx), x2.view(bs, self.na, self.nc, ny, nx)), 2).view(bs, -1, ny, nx)
-        return y
+        b = self.b3(self.b2(self.b1(x)))
+        c = self.c3(self.c2(self.c1(x)))
+        return torch.cat((b.view(bs, self.na, 5, ny, nx), c.view(bs, self.na, self.nc, ny, nx)), 2).view(bs, -1, ny, nx)
 
 
 class Model(nn.Module):
@@ -223,20 +219,12 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect() module
         for mi, s in zip(m.m, m.stride):  # from
             if type(mi) is Decouple:
-                b = mi.c1.bias.view(m.na, -1)
+                b = mi.b3.bias.view(m.na, -1)
                 b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                mi.c1.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
-
-                b = mi.c2.bias.data
+                mi.b3.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+                b = mi.c3.bias.data
                 b += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
-                mi.c2.bias = torch.nn.Parameter(b, requires_grad=True)
-
-            elif type(mi) is Decouple2:
-                b = mi.c1.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
-                b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                b.data[:, 5:] += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
-                mi.c1.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
-
+                mi.c3.bias = torch.nn.Parameter(b, requires_grad=True)
             else:  # default
                 b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
                 b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
