@@ -108,7 +108,7 @@ class Decouple2(nn.Module):
     # Decoupled convolution
     def __init__(self, c1, nc=80, na=3, s=1, p=None):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
-        c_ = min(c1, 128)
+        c_ = min(c1, 256)
         self.a = Conv(c1, c_, 1, s)
         self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
         self.c1 = nn.Conv2d(c_, (nc + 5) * na, (1, 1))  # box, obj outputs  (box, obj, cls...)
