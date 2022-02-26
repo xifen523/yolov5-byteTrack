@@ -90,8 +90,8 @@ class Decouple(nn.Module):
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1, s)
-        self.b1, self.b2 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # box
-        self.b3, self.b4 = (Conv(c_, c_, 1, s, autopad(1, p)) for _ in range(2))  # cls
+        self.b1, self.b2 = (Conv(c_, c_, 1, s, autopad(1, p)) for _ in range(2))  # box
+        self.b3, self.b4 = (Conv(c_, c_, 3, s, autopad(3, p)) for _ in range(2))  # cls
         self.c1 = nn.Conv2d(c_, na * 5, (1, 1))  # box, obj outputs  (box, obj, cls...)
         self.c2 = nn.Conv2d(c_, na * nc, (1, 1))  # class outputs
 
