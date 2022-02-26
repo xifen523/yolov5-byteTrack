@@ -87,13 +87,14 @@ class Decouple(nn.Module):
     def __init__(self, c1, nc=80, na=3):  # ch_in, num_classes, num_anchors
         super().__init__()
         c_ = min(c1, 128)  # min(c1, nc * na)
+        print(c_)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1)
-        # c = [int(x + na * 5) for x in (c_ - na * 5) * torch.linspace(1, 0, 4)]  # linear channel descent
-        # self.b1, self.b2, self.b3 = Conv(c_, c[1], 3), Conv(c[1], c[2], 3), nn.Conv2d(c[2], na * 5, 1)  # box, obj
-        self.b1, self.b2, self.b3 = Conv(c_, c_ // 2, 3), Conv(c_ // 2, c_, 3), nn.Conv2d(c_, na * 5, 1)  # box, obj
-        # self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # box, obj
+        c = [int(x + na * 5) for x in (c_ - na * 5) * torch.linspace(1, 0, 4)]  # linear channel descent
+        self.b1, self.b2, self.b3 = Conv(c_, c_, 3), Conv(c_, c_, 3), nn.Conv2d(c_, na * 5, 1)  # va
+        # self.b1, self.b2, self.b3 = Conv(c_, c_ // 2, 3), Conv(c_ // 2, c_, 3), nn.Conv2d(c_, na * 5, 1)  # vb
+        # self.b1, self.b2, self.b3 = Conv(c_, c[1], 3), Conv(c[1], c[2], 3), nn.Conv2d(c[2], na * 5, 1)  # vc
         self.c1, self.c2, self.c3 = Conv(c_, c_, 1), Conv(c_, c_, 1), nn.Conv2d(c_, na * nc, 1)  # cls
 
     def forward(self, x):
@@ -327,7 +328,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5s6.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='yolov5m6.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
