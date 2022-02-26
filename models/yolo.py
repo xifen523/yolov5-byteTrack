@@ -87,7 +87,6 @@ class Decouple(nn.Module):
     def __init__(self, c1, nc=80, na=3):  # ch_in, num_classes, num_anchors
         super().__init__()
         c_ = min(c1, 256)  # min(c1, nc * na)
-        print(c_)
         self.na = na  # number of anchors
         self.nc = nc  # number of classes
         self.a = Conv(c1, c_, 1)
