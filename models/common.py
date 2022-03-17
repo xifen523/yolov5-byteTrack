@@ -162,7 +162,7 @@ class C2c(nn.Module):
         self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
 
     def forward(self, x):
-        return self.cv2(self.cv1(x))
+        return self.cv2(self.m(self.cv1(x)))
 
 
 class C3(nn.Module):
