@@ -117,6 +117,7 @@ class ComputeLoss:
             setattr(self, k, getattr(det, k))
 
     def __call__(self, p, targets):  # predictions, targets
+        torch.autograd.set_detect_anomaly(True)
         # Solve for anchors and compute loss, input targets(image,class,x,y,w,h,anchor,layer,grid,loss)
         device = self.device
         off = torch.tensor([[0, 0],
@@ -137,6 +138,7 @@ class ComputeLoss:
             targets[:, :, :, i, 8] = i  # assign grid indices
 
         # Compute loss
+        lobj = torch.zeros(1, device=self.device)  # object loss
         for i, pi in enumerate(p):
             lcls = torch.zeros(1, device=self.device)  # class loss
             lbox = torch.zeros(1, device=self.device)  # box loss
@@ -170,7 +172,7 @@ class ComputeLoss:
                     lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
-            targets[:, :, i, :, 9] = lbox * self.hyp['box'] + lcls * self.hyp['cls']
+            targets[:, :, i, :, 9] = (lbox * self.hyp['box'] + lcls * self.hyp['cls']).detach()
 
         # Top 20
         tr = targets.view(nt, -1, 10)  # targets reshaped
@@ -184,20 +186,19 @@ class ComputeLoss:
         b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
 
         # Object loss
-        lobj = torch.zeros(1, device=self.device)  # object loss
         for i, pi in enumerate(p):
             ti.clamp_(0, pi.shape[3] - 1).squeeze_(), tj.clamp_(0, pi.shape[2] - 1).squeeze_()
             j = l == i  # layer i
 
             tobj = torch.zeros(pi.shape[:4], device=device)  # target obj
             tobj[b[j], a[j], tj[j], ti[j]] = 1.0  # iou ratio
-            lobj += self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
+            lobj = lobj + self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
 
         # Return
-        lbox *= self.hyp['box']
-        lobj *= self.hyp['obj']
-        lcls *= self.hyp['cls']
-        bs = tobj.shape[0]  # batch size
+        lbox = lbox.mean().view(1) * self.hyp['box']
+        lobj = lobj.mean().view(1) * self.hyp['obj']
+        lcls = lcls.mean().view(1) * self.hyp['cls']
+        bs = 16 # tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
 
