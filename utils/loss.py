@@ -171,8 +171,8 @@ class ComputeLoss:
                     tcls = torch.full_like(pcls, self.cn, device=device)  # targets
                     tcls[torch.arange(nt).view(-1, 1, 1), a, g, tc.long().squeeze()] = self.cp
 
-                    print('Pred:  ', pcls.min(), pcls.max())
-                    print('Target:  ', tcls.min(), tcls.max())
+                    # print('Pred:  ', pcls.min(), pcls.max())
+                    # print('Target:  ', tcls.min(), tcls.max())
                     lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
@@ -272,8 +272,8 @@ class ComputeLoss0:
                     t = torch.full_like(pcls, self.cn, device=self.device)  # targets
                     t[range(n), tcls[i]] = self.cp
 
-                    print('Pred:  ', pcls.min(), pcls.max())
-                    print('Target:  ', t.min(), t.max())
+                    # print('Pred:  ', pcls.min(), pcls.max())
+                    # print('Target:  ', t.min(), t.max())
                     lcls += self.BCEcls(pcls, t)  # BCE
 
                 # Append targets to text file
