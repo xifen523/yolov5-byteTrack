@@ -153,7 +153,6 @@ class ComputeLoss:
             b, a, g = b.long().squeeze(), a.long().squeeze(), g.long().squeeze()
             pxy, pwh, _, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
 
-            pxy, pwh, pconf, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
             if nt:
                 # Regression
                 pxy = pxy.sigmoid() * 2 - 0.5
