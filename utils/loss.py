@@ -128,6 +128,7 @@ class ComputeLoss:
         gain = torch.ones(11, device=device)  # normalized to gridspace gain
         targets = torch.cat((targets, torch.zeros((nt, 5), device=device)), -1)  # append anchor indices
         targets = targets.view(nt, 1, 1, 1, 11).repeat(1, na, nl, ng, 1)  # shape(3,235,4,5,7)
+        losses = torch.zeros((nt, na, nl, ng, 2), device=device)
 
         # Assign indices
         for i in range(na):
@@ -169,9 +170,14 @@ class ComputeLoss:
                 if self.nc > 1:  # cls loss (only if multiple classes)
                     tcls = torch.full_like(pcls, self.cn, device=device)  # targets
                     tcls[torch.arange(nt).view(-1, 1, 1), a, g, tc.long().squeeze()] = self.cp
+
+                    print('Pred:  ', pcls.min(), pcls.max())
+                    print('Target:  ', tcls.min(), tcls.max())
                     lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
+            losses[:, :, i, :, 0] = lbox * self.hyp['box']
+            losses[:, :, i, :, 1] = lcls * self.hyp['cls']
             targets[:, :, i, :, 9] = lbox.detach() * self.hyp['box']
             targets[:, :, i, :, 10] = lcls.detach() * self.hyp['cls']
 
@@ -179,9 +185,10 @@ class ComputeLoss:
         tr = targets.view(nt, -1, 11)  # targets reshaped
         topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :10]  # top 10 anchors
         tr = tr[torch.arange(nt).view(-1, 1), topi]
+        lr = losses.view(nt, -1, 2)[torch.arange(nt).view(-1, 1), topi]
 
         # Indices for obj loss
-        b, tc, txy, twh, a, l, g, lbox, lcls = tr.tensor_split((1, 2, 4, 6, 7, 8, 9, 10), -1)
+        b, tc, txy, twh, a, l, g, _ = tr.tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
         tij = (txy - off[g.long().squeeze()]).long()  # 0-79
         ti, tj = tij.unsafe_chunk(2, -1)  # grid indices
         b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
@@ -196,14 +203,14 @@ class ComputeLoss:
             lobj += self.BCEobj(pi[..., 4], tobj) * self.balance[i]  # obj loss
 
         # Return
-        lbox = lbox.mean().view(1) * nl
+        lbox = lr[..., 0].mean().view(1) * nl
         lobj *= self.hyp['obj']
-        lcls = lcls.mean().view(1) * nl
+        lcls = lr[..., 1].mean().view(1) * nl
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
 
-class ComputeLossOriginal:
+class ComputeLoss0:
     sort_obj_iou = False
 
     # Compute losses
@@ -264,6 +271,9 @@ class ComputeLossOriginal:
                 if self.nc > 1:  # cls loss (only if multiple classes)
                     t = torch.full_like(pcls, self.cn, device=self.device)  # targets
                     t[range(n), tcls[i]] = self.cp
+
+                    print('Pred:  ', pcls.min(), pcls.max())
+                    print('Target:  ', t.min(), t.max())
                     lcls += self.BCEcls(pcls, t)  # BCE
 
                 # Append targets to text file
