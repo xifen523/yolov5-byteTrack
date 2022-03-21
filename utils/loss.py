@@ -88,7 +88,7 @@ class QFocalLoss(nn.Module):
             return loss
 
 
-class ComputeLoss:
+class ComputeLoss2:
     # Compute YOLOv5 losses
     sort_obj_iou = False
 
@@ -210,7 +210,7 @@ class ComputeLoss:
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
 
-class ComputeLoss0:
+class ComputeLoss:
     sort_obj_iou = False
 
     # Compute losses
@@ -272,7 +272,7 @@ class ComputeLoss0:
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)
                     t = torch.full_like(pcls, self.cn, device=self.device)  # targets
-                    t[range(n), tcls[i]] = self.cp
+                    t[range(n), tcls[i]] = self.cp * iou
 
                     # print('Pred:  ', pcls.min(), pcls.max())
                     # print('Target:  ', t.min(), t.max())
