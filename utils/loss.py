@@ -98,7 +98,7 @@ class ComputeLoss:
 
         # Define criteria
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device), reduction='none')
-        BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device), reduction='none')
+        BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
@@ -193,11 +193,11 @@ class ComputeLoss:
 
             tobj = torch.zeros(pi.shape[:4], device=device)  # target obj
             tobj[b[j], a[j], tj[j], ti[j]] = 1.0  # iou ratio
-            lobj += self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
+            lobj += self.BCEobj(pi[..., 4], tobj) * self.balance[i]  # obj loss
 
         # Return
         lbox = lbox.mean().view(1)
-        lobj = lobj.mean().view(1) * self.hyp['obj']
+        lobj = lobj * self.hyp['obj']
         lcls = lcls.mean().view(1)
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
