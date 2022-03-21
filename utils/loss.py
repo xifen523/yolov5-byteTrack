@@ -177,12 +177,12 @@ class ComputeLoss:
             # Total
             losses[:, :, i, :, 0] = lbox
             losses[:, :, i, :, 1] = lcls
-            targets[:, :, i, :, 9] = lbox.detach() * self.hyp['box']
-            targets[:, :, i, :, 10] = lcls.detach() * self.hyp['cls']
+            targets[:, :, i, :, 9] = lbox.detach() * 1  # self.hyp['box']
+            targets[:, :, i, :, 10] = lcls.detach() * 2  # self.hyp['cls']
 
         # Top 20
         tr = targets.view(nt, -1, 11)  # targets reshaped
-        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :3]  # top 3 anchors
+        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :10]  # top 3 anchors
         i = torch.arange(nt).view(-1, 1)
         tr = tr[i, topi]
         lr = losses.view(nt, -1, 2)[i, topi]
