@@ -182,7 +182,7 @@ class ComputeLoss:
 
         # Top 20
         tr = targets.view(nt, -1, 11)  # targets reshaped
-        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :10]  # top 10 anchors
+        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :3]  # top 3 anchors
         i = torch.arange(nt).view(-1, 1)
         tr = tr[i, topi]
         lr = losses.view(nt, -1, 2)[i, topi]
