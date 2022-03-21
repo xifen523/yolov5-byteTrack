@@ -176,8 +176,8 @@ class ComputeLoss:
                     lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
-            losses[:, :, i, :, 0] = lbox * self.hyp['box']
-            losses[:, :, i, :, 1] = lcls * self.hyp['cls']
+            losses[:, :, i, :, 0] = lbox
+            losses[:, :, i, :, 1] = lcls
             targets[:, :, i, :, 9] = lbox.detach() * self.hyp['box']
             targets[:, :, i, :, 10] = lcls.detach() * self.hyp['cls']
 
@@ -203,9 +203,9 @@ class ComputeLoss:
             lobj += self.BCEobj(pi[..., 4], tobj) * self.balance[i]  # obj loss
 
         # Return
-        lbox = lr[..., 0].mean().view(1) * nl
+        lbox = lr[..., 0].mean().view(1) * nl * self.hyp['box']
         lobj *= self.hyp['obj']
-        lcls = lr[..., 1].mean().view(1) * nl
+        lcls = lr[..., 1].mean().view(1) * nl * self.hyp['cls']
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
