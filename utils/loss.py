@@ -177,7 +177,7 @@ class ComputeLoss:
 
         # Top 20
         tr = targets.view(nt, -1, 11)  # targets reshaped
-        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :5]  # top 5 anchors
+        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :10]  # top 10 anchors
         tr = tr[torch.arange(nt).view(-1, 1), topi]
 
         # Indices for obj loss
