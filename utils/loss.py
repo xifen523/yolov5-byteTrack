@@ -89,9 +89,9 @@ class QFocalLoss(nn.Module):
 
 
 class ComputeLoss:
+    # Compute YOLOv5 losses
     sort_obj_iou = False
 
-    # Compute losses
     def __init__(self, model, autobalance=False):
         device = next(model.parameters()).device  # get model device
         h = model.hyp  # hyperparameters
@@ -117,9 +117,7 @@ class ComputeLoss:
             setattr(self, k, getattr(det, k))
 
     def __call__(self, p, targets):  # predictions, targets
-
-        # Build targets for compute_loss(), input targets(image,class,x,y,w,h,anchor,layer,grid,loss)
-        tcls, tbox, indices, anch = [], [], [], []
+        # Solve for anchors and compute loss, input targets(image,class,x,y,w,h,anchor,layer,grid,loss)
         device = self.device
         off = torch.tensor([[0, 0],
                             [1, 0], [0, 1], [-1, 0], [0, -1],  # j,k,l,m
@@ -131,7 +129,6 @@ class ComputeLoss:
         targets = targets.view(nt, 1, 1, 1, 10).repeat(1, na, nl, ng, 1)  # shape(3,235,4,5,7)
 
         # Assign indices
-        tg = torch.clone(targets)
         for i in range(na):
             targets[:, i, :, :, 6] = i  # assign anchor indices
         for i in range(nl):
@@ -146,14 +143,12 @@ class ComputeLoss:
             gain[2:6] = torch.tensor(pi.shape)[[3, 2, 3, 2]]  # xyxy gain
             targets[:, :, i] = targets[:, :, i] * gain
 
-            b, tcls, txy, twh, a, l, g, _ = targets[:, :, i].tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
+            b, tc, txy, twh, a, l, g, _ = targets[:, :, i].tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
             tij = (txy - off).long()  # 0-79
             ti, tj = tij.unsafe_chunk(2, -1)  # grid indices
-            tj.clamp_(0, gain[3] - 1)
-            ti.clamp_(0, gain[2] - 1)
+            ti.clamp_(0, gain[2] - 1).squeeze_(), tj.clamp_(0, gain[3] - 1).squeeze_()
             tbox = torch.cat((txy - tij, twh), -1)
-            b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
-            ti, tj = ti.squeeze(), tj.squeeze()
+            b, a, g = b.long().squeeze(), a.long().squeeze(), g.long().squeeze()
 
             pxy, pwh, pconf, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
             if nt:
@@ -170,38 +165,38 @@ class ComputeLoss:
 
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)
-                    tv = torch.full_like(pcls, self.cn, device=device)  # targets
-                    tv[torch.arange(nt).view(-1, 1, 1), a, g, tcls.long().squeeze()] = self.cp
-                    lcls = self.BCEcls(pcls, tv).mean(-1)  # BCE
+                    tcls = torch.full_like(pcls, self.cn, device=device)  # targets
+                    tcls[torch.arange(nt).view(-1, 1, 1), a, g, tc.long().squeeze()] = self.cp
+                    lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
             targets[:, :, i, :, 9] = lbox * self.hyp['box'] + lcls * self.hyp['cls']
 
         # Top 20
-        t3 = targets.view(nt, -1, 10)
-        top = t3[..., 9].argsort(1)[:, :20]  # top 20 anchors
-        t3 = t3[torch.arange(nt).view(-1, 1), top]
+        tr = targets.view(nt, -1, 10)  # targets reshaped
+        topi = tr[..., 9].argsort(1)[:, :20]  # top 20 anchors
+        tr = tr[torch.arange(nt).view(-1, 1), topi]
 
         # Indices for obj loss
-        b, tcls, txy, twh, a, l, g, _ = t3.tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
+        b, tc, txy, twh, a, l, g, _ = tr.tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
         tij = (txy - off[g.long().squeeze()]).long()  # 0-79
+        ti, tj = tij.unsafe_chunk(2, -1)  # grid indices
+        b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
 
         # Object loss
         lobj = torch.zeros(1, device=self.device)  # object loss
         for i, pi in enumerate(p):
-            gain[2:6] = torch.tensor(pi.shape)[[3, 2, 3, 2]]  # xyxy gain
-            ti, tj = tij.unsafe_chunk(2, -1)  # grid indices
-            tj.clamp_(0, gain[3] - 1)
-            ti.clamp_(0, gain[2] - 1)
-            b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
-            ti, tj = ti.squeeze(), tj.squeeze()
-            j = l == i
+            ti.clamp_(0, pi.shape[3] - 1).squeeze_(), tj.clamp_(0, pi.shape[2] - 1).squeeze_()
+            j = l == i  # layer i
 
             tobj = torch.zeros(pi.shape[:4], device=device)  # target obj
             tobj[b[j], a[j], tj[j], ti[j]] = 1.0  # iou ratio
             lobj += self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
 
         # Return
+        lbox *= self.hyp['box']
+        lobj *= self.hyp['obj']
+        lcls *= self.hyp['cls']
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
