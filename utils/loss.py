@@ -197,7 +197,7 @@ class ComputeLoss:
 
         # Return
         lbox = lbox.mean().view(1) * nl
-        lobj = lobj * self.hyp['obj']
+        lobj *= self.hyp['obj']
         lcls = lcls.mean().view(1) * nl
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
