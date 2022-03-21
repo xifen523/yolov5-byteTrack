@@ -151,6 +151,7 @@ class ComputeLoss:
             ti.clamp_(0, gain[2] - 1).squeeze_(), tj.clamp_(0, gain[3] - 1).squeeze_()
             tbox = torch.cat((txy - tij, twh), -1)
             b, a, g = b.long().squeeze(), a.long().squeeze(), g.long().squeeze()
+            pxy, pwh, _, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
 
             pxy, pwh, pconf, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
             if nt:
