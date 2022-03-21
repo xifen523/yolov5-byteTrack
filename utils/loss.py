@@ -141,8 +141,6 @@ class ComputeLoss:
         # Compute loss
         lobj = torch.zeros(1, device=self.device)  # object loss
         for i, pi in enumerate(p):
-            lcls = torch.zeros(1, device=self.device)  # class loss
-            lbox = torch.zeros(1, device=self.device)  # box loss
             gain[2:6] = torch.tensor(pi.shape)[[3, 2, 3, 2]]  # xyxy gain
             targets[:, :, i] = targets[:, :, i] * gain
 
@@ -154,13 +152,14 @@ class ComputeLoss:
             b, a, g = b.long().squeeze(), a.long().squeeze(), g.long().squeeze()
             pxy, pwh, _, pcls = pi[b, a, tj, ti].tensor_split((2, 4, 5), -1)  # predictions`
 
+            lbox = torch.zeros(1, device=self.device)  # box loss
+            lcls = torch.zeros(1, device=self.device)  # class loss
             if nt:
                 # Regression
                 pxy = pxy.sigmoid() * 2 - 0.5
                 pwh = (pwh.sigmoid() * 2) ** 2 * self.anchors[i].view(1, na, 1, 2)
                 pbox = torch.cat((pxy, pwh), -1)  # predicted box
-                iou = bbox_iou(pbox.view(-1, 4).T, tbox.view(-1, 4), x1y1x2y2=False, CIoU=True).view(nt, na, ng)
-                lbox = 1.0 - iou
+                lbox = 1.0 - bbox_iou(pbox.view(-1, 4).T, tbox.view(-1, 4), x1y1x2y2=False, CIoU=True).view(nt, na, ng)
 
                 # Objectness
                 # score_iou = iou.detach().clamp(0).type(tobj.dtype)
@@ -184,8 +183,9 @@ class ComputeLoss:
         # Top 20
         tr = targets.view(nt, -1, 11)  # targets reshaped
         topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :10]  # top 10 anchors
-        tr = tr[torch.arange(nt).view(-1, 1), topi]
-        lr = losses.view(nt, -1, 2)[torch.arange(nt).view(-1, 1), topi]
+        i = torch.arange(nt).view(-1, 1)
+        tr = tr[i, topi]
+        lr = losses.view(nt, -1, 2)[i, topi]
 
         # Indices for obj loss
         b, tc, txy, twh, a, l, g, _ = tr.tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
