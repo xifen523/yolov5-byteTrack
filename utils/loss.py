@@ -118,16 +118,16 @@ class ComputeLoss:
 
     def __call__(self, p, targets):  # predictions, targets
         torch.autograd.set_detect_anomaly(True)
-        # Solve for anchors and compute loss, input targets(image,class,x,y,w,h,anchor,layer,grid,loss)
+        # Solve for anchors and compute loss, input targets(image,class,x,y,w,h,anchor,layer,grid,box_loss,cls_loss)
         device = self.device
         off = torch.tensor([[0, 0],
                             [1, 0], [0, 1], [-1, 0], [0, -1],  # j,k,l,m
                             # [1, 1], [1, -1], [-1, 1], [-1, -1],  # jk,jm,lk,lm
                             ], device=device).float()
         na, nl, ng, nt = self.na, self.nl, off.shape[0], targets.shape[0]  # number of anchors, layers, grids, targets
-        gain = torch.ones(10, device=device)  # normalized to gridspace gain
-        targets = torch.cat((targets, torch.zeros_like(targets[:, -4:])), -1)  # append anchor indices
-        targets = targets.view(nt, 1, 1, 1, 10).repeat(1, na, nl, ng, 1)  # shape(3,235,4,5,7)
+        gain = torch.ones(11, device=device)  # normalized to gridspace gain
+        targets = torch.cat((targets, torch.zeros((nt, 5), device=device)), -1)  # append anchor indices
+        targets = targets.view(nt, 1, 1, 1, 11).repeat(1, na, nl, ng, 1)  # shape(3,235,4,5,7)
 
         # Assign indices
         for i in range(na):
@@ -172,15 +172,16 @@ class ComputeLoss:
                     lcls = self.BCEcls(pcls, tcls).mean(-1)  # BCE
 
             # Total
-            targets[:, :, i, :, 9] = (lbox * self.hyp['box'] + lcls * self.hyp['cls']).detach()
+            targets[:, :, i, :, 9] = lbox.detach() * self.hyp['box']
+            targets[:, :, i, :, 10] = lcls.detach() * self.hyp['cls']
 
         # Top 20
-        tr = targets.view(nt, -1, 10)  # targets reshaped
-        topi = tr[..., 9].argsort(1)[:, :20]  # top 20 anchors
+        tr = targets.view(nt, -1, 11)  # targets reshaped
+        topi = (tr[..., 9] + tr[..., 10]).argsort(1)[:, :20]  # top 20 anchors
         tr = tr[torch.arange(nt).view(-1, 1), topi]
 
         # Indices for obj loss
-        b, tc, txy, twh, a, l, g, _ = tr.tensor_split((1, 2, 4, 6, 7, 8, 9), -1)
+        b, tc, txy, twh, a, l, g, lbox, lcls = tr.tensor_split((1, 2, 4, 6, 7, 8, 9, 10), -1)
         tij = (txy - off[g.long().squeeze()]).long()  # 0-79
         ti, tj = tij.unsafe_chunk(2, -1)  # grid indices
         b, a, l, g = b.long().squeeze(), a.long().squeeze(), l.long().squeeze(), g.long().squeeze()
@@ -192,12 +193,12 @@ class ComputeLoss:
 
             tobj = torch.zeros(pi.shape[:4], device=device)  # target obj
             tobj[b[j], a[j], tj[j], ti[j]] = 1.0  # iou ratio
-            lobj = lobj + self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
+            lobj += self.BCEobj(pi[..., 4], tobj).mean() * self.balance[i]  # obj loss
 
         # Return
-        lbox = lbox.mean().view(1) * self.hyp['box']
+        lbox = lbox.mean().view(1)
         lobj = lobj.mean().view(1) * self.hyp['obj']
-        lcls = lcls.mean().view(1) * self.hyp['cls']
+        lcls = lcls.mean().view(1)
         bs = tobj.shape[0]  # batch size
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
