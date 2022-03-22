@@ -238,6 +238,24 @@ class SPPF(nn.Module):
             return self.cv2(torch.cat((x, y1, y2, self.m(y2)), 1))
 
 
+class C2SPPF(nn.Module):
+    # Spatial Pyramid Pooling - Fast (SPPF) C2 layer for YOLOv5 by Glenn Jocher
+    def __init__(self, c1, c2, k=5):  # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, 2 * c_, 1, 1)
+        self.cv2 = Conv(4 * c_, c2, 1, 1)
+        self.m = nn.MaxPool2d(kernel_size=k, stride=1, padding=k // 2)
+
+    def forward(self, x):
+        y1, y2 = self.cv1(x).unsafe_chunk(2, dim=1)  # exports better than .chunk()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')  # suppress torch 1.9.0 max_pool2d() warning
+            y2 = self.m(y1)
+            y3 = self.m(y2)
+            return self.cv2(torch.cat((y1, y2, y3, self.m(y3)), 1))
+
+
 class Focus(nn.Module):
     # Focus wh information into c-space
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
