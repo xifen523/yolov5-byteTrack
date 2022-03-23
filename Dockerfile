@@ -3,7 +3,7 @@ FROM ubuntu:latest
 # Install linux packages
 RUN apt update
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y tzdata
-RUN apt install -y python3-pip zip htop screen libgl1-mesa-glx libglib2.0-0
+RUN apt install -y python3-pip git zip htop screen libgl1-mesa-glx libglib2.0-0
 RUN alias python=python3
 
 # Install python dependencies
