@@ -296,8 +296,9 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # YOLOv5s6: 355 layers, 12626620 parameters, 12626620 gradients, 16.9 GFLOPs
-    parser.add_argument('--cfg', type=str, default='yolov5s6.yaml', help='model.yaml')
+    # YOLOv5s summary: 270 layers, 7232797 parameters, 7232797 gradients, 16.0 GFLOPs
+    # YOLOv5s6 summary: 355 layers, 12626620 parameters, 12626620 gradients, 16.9 GFLOPs
+    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
