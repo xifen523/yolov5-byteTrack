@@ -123,13 +123,15 @@ class Timeout(contextlib.ContextDecorator):
         raise TimeoutError(self.timeout_message)
 
     def __enter__(self):
-        signal.signal(signal.SIGALRM, self._timeout_handler)  # Set handler for SIGALRM
-        signal.alarm(self.seconds)  # start countdown for SIGALRM to be raised
+        if platform.system() != 'Windows':  # not supported on Windows
+            signal.signal(signal.SIGALRM, self._timeout_handler)  # Set handler for SIGALRM
+            signal.alarm(self.seconds)  # start countdown for SIGALRM to be raised
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        signal.alarm(0)  # Cancel SIGALRM if it's scheduled
-        if self.suppress and exc_type is TimeoutError:  # Suppress TimeoutError
-            return True
+        if platform.system() != 'Windows':
+            signal.alarm(0)  # Cancel SIGALRM if it's scheduled
+            if self.suppress and exc_type is TimeoutError:  # Suppress TimeoutError
+                return True
 
 
 class WorkingDirectory(contextlib.ContextDecorator):
@@ -447,8 +449,9 @@ def check_dataset(data, autodownload=True):
     if val:
         val = [Path(x).resolve() for x in (val if isinstance(val, list) else [val])]  # val path
         if not all(x.exists() for x in val):
-            LOGGER.info('\nDataset not found, missing paths: %s' % [str(x) for x in val if not x.exists()])
+            LOGGER.info(emojis('\nDataset not found ⚠️, missing paths %s' % [str(x) for x in val if not x.exists()]))
             if s and autodownload:  # download script
+                t = time.time()
                 root = path.parent if 'path' in data else '..'  # unzip directory i.e. '../'
                 if s.startswith('http') and s.endswith('.zip'):  # URL
                     f = Path(s).name  # filename
@@ -463,9 +466,11 @@ def check_dataset(data, autodownload=True):
                     r = os.system(s)
                 else:  # python script
                     r = exec(s, {'yaml': data})  # return None
-                LOGGER.info(f"Dataset autodownload {f'success, saved to {root}' if r in (0, None) else 'failure'}\n")
+                dt = f'({round(time.time() - t, 1)}s)'
+                s = f"success ✅ {dt}, saved to {colorstr('bold', root)}" if r in (0, None) else f"failure {dt} ❌"
+                LOGGER.info(emojis(f"Dataset download {s}"))
             else:
-                raise Exception('Dataset not found.')
+                raise Exception(emojis('Dataset not found ❌'))
 
     return data  # dictionary
 
@@ -489,7 +494,7 @@ def download(url, dir='.', unzip=True, delete=True, curl=False, threads=1):
             if curl:
                 os.system(f"curl -L '{url}' -o '{f}' --retry 9 -C -")  # curl download, retry and resume on fail
             else:
-                torch.hub.download_url_to_file(url, f, progress=True)  # torch download
+                torch.hub.download_url_to_file(url, f, progress=threads == 1)  # torch download
         if unzip and f.suffix in ('.zip', '.gz'):
             LOGGER.info(f'Unzipping {f}...')
             if f.suffix == '.zip':
