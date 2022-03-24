@@ -56,6 +56,42 @@ class DWConv(Conv):
         super().__init__(c1, c2, k, s, g=math.gcd(c1, c2), act=act)
 
 
+class Scale1(nn.Module):
+    # Scale down by 2x in width and height
+    def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, c_, 2, 2, 0)
+        self.cv2 = Conv(c_, c2, 3, 1, 1)
+
+    def forward(self, x):
+        return self.cv2(self.cv1(x))
+
+
+class Scale2(nn.Module):
+    # Scale down by 2x in width and height
+    def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, c_, 1, 1, 0)
+        self.cv2 = Conv(c_, c2, 3, 2, 1)
+
+    def forward(self, x):
+        return self.cv2(self.cv1(x))
+
+
+class Scale3(nn.Module):
+    # Scale down by 2x in width and height
+    def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, c1, 2, 2, 0)
+        self.cv2 = Conv(c1, c2, 3, 1, 1)
+
+    def forward(self, x):
+        return self.cv2(self.cv1(x))
+
+
 class TransformerLayer(nn.Module):
     # Transformer layer https://arxiv.org/abs/2010.11929 (LayerNorm layers removed for better performance)
     def __init__(self, c, num_heads):
@@ -196,7 +232,7 @@ class C3(nn.Module):
 
 class C3alpha1(nn.Module):
     # CSP Bottleneck with 3 convolutions
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
