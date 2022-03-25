@@ -109,7 +109,7 @@ class Scale8(nn.Module):
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
         c_ = c2 // 2  # hidden channels
-        self.cv1 = Conv(c1, c1, 3, 1, 0)
+        self.cv1 = Conv(c1, c1, 3, 2, 1)
         self.cv2 = Conv(c1, c2, 1, 1, 0)
 
     def forward(self, x):
