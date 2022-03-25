@@ -92,6 +92,30 @@ class Scale3(nn.Module):
         return self.cv2(self.cv1(x))
 
 
+class Scale4(nn.Module):
+    # Scale down by 2x in width and height
+    def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, c1, 2, 2, 0)
+        self.cv2 = Conv(c1, c2, 1, 1, 0)
+
+    def forward(self, x):
+        return self.cv2(self.cv1(x))
+
+
+class Scale5(nn.Module):
+    # Scale down by 2x in width and height
+    def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = c2 // 2  # hidden channels
+        self.cv1 = Conv(c1, c1, 3, 1, 0)
+        self.cv2 = Conv(c1, c2, 1, 1, 0)
+
+    def forward(self, x):
+        return self.cv2(self.cv1(x))
+
+
 class TransformerLayer(nn.Module):
     # Transformer layer https://arxiv.org/abs/2010.11929 (LayerNorm layers removed for better performance)
     def __init__(self, c, num_heads):
