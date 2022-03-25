@@ -21,7 +21,6 @@ import yaml
 from PIL import Image
 from torch.cuda import amp
 
-from models.experimental import CrossConv
 from utils.datasets import exif_transpose, letterbox
 from utils.general import (LOGGER, check_requirements, check_suffix, check_version, colorstr, increment_path,
                            make_divisible, non_max_suppression, scale_coords, xywh2xyxy, xyxy2xywh)
@@ -49,6 +48,9 @@ class Conv(nn.Module):
 
     def forward_fuse(self, x):
         return self.act(self.conv(x))
+
+
+from models.experimental import CrossConv
 
 
 class DWConv(Conv):
