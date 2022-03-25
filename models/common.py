@@ -92,7 +92,7 @@ class Scale3(nn.Module):
         return self.cv2(self.cv1(x))
 
 
-class Scale4(nn.Module):
+class Scale7(nn.Module):
     # Scale down by 2x in width and height
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
@@ -104,7 +104,7 @@ class Scale4(nn.Module):
         return self.cv2(self.cv1(x))
 
 
-class Scale5(nn.Module):
+class Scale8(nn.Module):
     # Scale down by 2x in width and height
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
