@@ -87,7 +87,6 @@ class Scale3(nn.Module):
     # Scale down by 2x in width and height
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
-        c_ = c2 // 2  # hidden channels
         self.cv1 = Conv(c1, c1, 2, 2, 0)
         self.cv2 = Conv(c1, c2, 3, 1, 1)
 
