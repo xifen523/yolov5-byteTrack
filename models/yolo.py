@@ -262,14 +262,14 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         if m in [Conv, Scale1, Scale2, Scale3, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha, GhostBottleneck,
                  SPP, SPPF,
                  C2SPPF, DWConv, MixConv2d,
-                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C33a, C33b, C33c, C3alpha1, C3alphan, C3TR, C3SPP, C3Ghost,
+                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3TR, C3SPP, C3Ghost,
                  RepVGGBlock]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C33a, C33b, C33c, C3TR, C3Ghost, C3alpha1, C3alphan]:
+            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3TR, C3Ghost]:
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
@@ -315,6 +315,8 @@ if __name__ == '__main__':
     # YOLOv5s6-7b-scale1-6 summary: 385 layers, 9610396 parameters, 9610396 gradients, 13.9 GFLOPs
     # YOLOv5s6-7b-scale3-4 summary: 375 layers, 10888348 parameters, 10888348 gradients, 14.5 GFLOPs
     # YOLOv5s6-7b-scale3-6 summary: 385 layers, 11216796 parameters, 11216796 gradients, 14.9 GFLOPs
+    # YOLOv5s6-7b-scale1-4-e15 summary: 375 layers, 10827452 parameters, 10827452 gradients, 15.9 GFLOPs
+    # YOLOv5s6-7b-C33a summary: 355 layers, 10008396 parameters, 10008396 gradients, 14.0 GFLOPs
 
     parser.add_argument('--cfg', type=str, default='yolov5s6-7b-C33c.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
