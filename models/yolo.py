@@ -7,6 +7,8 @@ Usage:
 """
 
 import argparse
+import os
+import platform
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -15,7 +17,8 @@ FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
-# ROOT = ROOT.relative_to(Path.cwd())  # relative
+if platform.system() != 'Windows':
+    ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 from models.common import *
 from models.experimental import *
@@ -259,14 +262,14 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         if m in [Conv, Scale1, Scale2, Scale3, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha, GhostBottleneck,
                  SPP, SPPF,
                  C2SPPF, DWConv, MixConv2d,
-                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3alpha1, C3alphan, C3TR, C3SPP, C3Ghost,
+                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C33a, C33b, C33c, C3alpha1, C3alphan, C3TR, C3SPP, C3Ghost,
                  RepVGGBlock]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3TR, C3Ghost, C3alpha1, C3alphan]:
+            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C33a, C33b, C33c, C3TR, C3Ghost, C3alpha1, C3alphan]:
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
@@ -301,9 +304,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # YOLOv5s summary: 270 layers, 7232797 parameters, 7232797 gradients, 16.0 GFLOPs
     # YOLOv5s6 summary: 355 layers, 12626620 parameters, 12626620 gradients, 16.9 GFLOPs
-    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
+    # YOLOv5s6-scale1 summary: 375 layers, 12488636 parameters, 12488636 gradients, 17.3 GFLOPs
+    # YOLOv5s6-scale3 summary: 375 layers, 13562172 parameters, 13562172 gradients, 17.6 GFLOPs
+
+    # YOLOv5s6-7b summary: 355 layers, 11300380 parameters, 11300380 gradients, 16.1 GFLOPs
+    # YOLOv5s6-7b-x10 summary: 355 layers, 9952796 parameters, 9952796 gradients, 13.8 GFLOPs
+    # YOLOv5s6-7b-x15 summary: 355 layers, 10965436 parameters, 10965436 gradients, 15.5 GFLOPs
+
+    # YOLOv5s6-7b-scale1-4 summary: 375 layers, 9814812 parameters, 9814812 gradients, 14.1 GFLOPs
+    # YOLOv5s6-7b-scale1-6 summary: 385 layers, 9610396 parameters, 9610396 gradients, 13.9 GFLOPs
+    # YOLOv5s6-7b-scale3-4 summary: 375 layers, 10888348 parameters, 10888348 gradients, 14.5 GFLOPs
+    # YOLOv5s6-7b-scale3-6 summary: 385 layers, 11216796 parameters, 11216796 gradients, 14.9 GFLOPs
+
+    parser.add_argument('--cfg', type=str, default='yolov5s6-7b-C33a.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--profile', action='store_true', help='profile model speed')
+    parser.add_argument('--profile', action='store_false', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
     opt = parser.parse_args()
     opt.cfg = check_yaml(opt.cfg)  # check YAML
