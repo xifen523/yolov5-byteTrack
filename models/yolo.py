@@ -317,7 +317,10 @@ if __name__ == '__main__':
     # YOLOv5s6-7b-scale3-6 summary: 385 layers, 11216796 parameters, 11216796 gradients, 14.9 GFLOPs
     # YOLOv5s6-7b-scale1-4-e15 summary: 375 layers, 10827452 parameters, 10827452 gradients, 15.9 GFLOPs
 
-    parser.add_argument('--cfg', type=str, default='yolov5s6-7b-scale1-4.yaml', help='model.yaml')
+    # YOLOv5l6 summary: 607 layers, 76770172 parameters, 76770172 gradients, 111.5 GFLOPs
+    # YOLOv5l6-7b-scale1-4 summary: 627 layers, 54737980 parameters, 54737980 gradients, 82.7 GFLOPs
+
+    parser.add_argument('--cfg', type=str, default='yolov5l6-7b-scale1-4.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_false', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
