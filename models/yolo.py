@@ -260,17 +260,16 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 pass
 
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
-        if m in [Conv, Scale1, Scale2, Scale3, Scale5, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha, GhostBottleneck,
-                 SPP, SPPF,
-                 C2SPPF, DWConv, MixConv2d,
-                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3F, C3TR, C3SPP, C3Ghost,
+        if m in [Conv, Scale1, Scale2, Scale3, Scale5, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha,
+                 GhostBottleneck, SPP, SPPF, C2SPPF, DWConv, MixConv2d,
+                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3F, C3TR, C3SPP, C3Ghost,
                  RepVGGBlock]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3F, C3TR, C3Ghost]:
+            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3F, C3TR, C3Ghost]:
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
@@ -302,26 +301,26 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 
 # YOLOv5s summary: 270 layers, 7232797 parameters, 7232797 gradients, 16.0 GFLOPs
-    # YOLOv5s6 summary: 355 layers, 12626620 parameters, 12626620 gradients, 16.9 GFLOPs
-    # YOLOv5s6-scale1 summary: 375 layers, 12488636 parameters, 12488636 gradients, 17.3 GFLOPs
-    # YOLOv5s6-scale3 summary: 375 layers, 13562172 parameters, 13562172 gradients, 17.6 GFLOPs
+# YOLOv5s6 summary: 355 layers, 12626620 parameters, 12626620 gradients, 16.9 GFLOPs
+# YOLOv5s6-scale1 summary: 375 layers, 12488636 parameters, 12488636 gradients, 17.3 GFLOPs
+# YOLOv5s6-scale3 summary: 375 layers, 13562172 parameters, 13562172 gradients, 17.6 GFLOPs
 
-    # YOLOv5s6-7b summary: 355 layers, 11300380 parameters, 11300380 gradients, 16.1 GFLOPs
-    # YOLOv5s6-7b-x10 summary: 355 layers, 9952796 parameters, 9952796 gradients, 13.8 GFLOPs
-    # YOLOv5s6-7b-x15 summary: 355 layers, 10965436 parameters, 10965436 gradients, 15.5 GFLOPs
+# YOLOv5s6-7b summary: 355 layers, 11300380 parameters, 11300380 gradients, 16.1 GFLOPs
+# YOLOv5s6-7b-x10 summary: 355 layers, 9952796 parameters, 9952796 gradients, 13.8 GFLOPs
+# YOLOv5s6-7b-x15 summary: 355 layers, 10965436 parameters, 10965436 gradients, 15.5 GFLOPs
 
-    # YOLOv5s6-7b-scale1-4 summary: 375 layers, 9814812 parameters, 9814812 gradients, 14.1 GFLOPs
-    # YOLOv5s6-7b-scale1-6 summary: 385 layers, 9610396 parameters, 9610396 gradients, 13.9 GFLOPs
-    # YOLOv5s6-7b-scale3-4 summary: 375 layers, 10888348 parameters, 10888348 gradients, 14.5 GFLOPs
-    # YOLOv5s6-7b-scale3-6 summary: 385 layers, 11216796 parameters, 11216796 gradients, 14.9 GFLOPs
-    # YOLOv5s6-7b-scale1-4-e15 summary: 375 layers, 10827452 parameters, 10827452 gradients, 15.9 GFLOPs
+# YOLOv5s6-7b-scale1-4 summary: 375 layers, 9814812 parameters, 9814812 gradients, 14.1 GFLOPs
+# YOLOv5s6-7b-scale1-6 summary: 385 layers, 9610396 parameters, 9610396 gradients, 13.9 GFLOPs
+# YOLOv5s6-7b-scale3-4 summary: 375 layers, 10888348 parameters, 10888348 gradients, 14.5 GFLOPs
+# YOLOv5s6-7b-scale3-6 summary: 385 layers, 11216796 parameters, 11216796 gradients, 14.9 GFLOPs
+# YOLOv5s6-7b-scale1-4-e15 summary: 375 layers, 10827452 parameters, 10827452 gradients, 15.9 GFLOPs
 
-    # YOLOv5l6 summary: 607 layers, 76770172 parameters, 76770172 gradients, 111.5 GFLOPs
-    # YOLOv5l6-7b summary: 607 layers, 55292476 parameters, 55292476 gradients, 81.3 GFLOPs
-    # YOLOv5l6-7b10-15 summary: 607 layers, 67432444 parameters, 67432444 gradients, 102.4 GFLOPs
-    # YOLOv5l6-7b-scale1-4 summary: 627 layers, 54737980 parameters, 54737980 gradients, 82.7 GFLOPs
-    # YOLOv5l6-7b-scale5k3-4 summary: 627 layers, 51585724 parameters, 51585724 gradients, 81.2 GFLOPs
-    # YOLOv5l6-7b-scale5k5-4 summary: 627 layers, 57172668 parameters, 57172668 gradients, 88.9 GFLOPs
+# YOLOv5l6 summary: 607 layers, 76770172 parameters, 76770172 gradients, 111.5 GFLOPs
+# YOLOv5l6-7b summary: 607 layers, 55292476 parameters, 55292476 gradients, 81.3 GFLOPs
+# YOLOv5l6-7b10-15 summary: 607 layers, 67432444 parameters, 67432444 gradients, 102.4 GFLOPs
+# YOLOv5l6-7b-scale1-4 summary: 627 layers, 54737980 parameters, 54737980 gradients, 82.7 GFLOPs
+# YOLOv5l6-7b-scale5k3-4 summary: 627 layers, 51585724 parameters, 51585724 gradients, 81.2 GFLOPs
+# YOLOv5l6-7b-scale5k5-4 summary: 627 layers, 57172668 parameters, 57172668 gradients, 88.9 GFLOPs
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
