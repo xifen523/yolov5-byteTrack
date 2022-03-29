@@ -260,7 +260,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 pass
 
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
-        if m in [Conv, Scale1, Scale2, Scale3, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha, GhostBottleneck,
+        if m in [Conv, Scale1, Scale2, Scale3, Scale5, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha, GhostBottleneck,
                  SPP, SPPF,
                  C2SPPF, DWConv, MixConv2d,
                  Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3TR, C3SPP, C3Ghost,
@@ -317,6 +317,8 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
     # YOLOv5s6-7b-scale1-4-e15 summary: 375 layers, 10827452 parameters, 10827452 gradients, 15.9 GFLOPs
 
     # YOLOv5l6 summary: 607 layers, 76770172 parameters, 76770172 gradients, 111.5 GFLOPs
+    # YOLOv5l6-7b summary: 607 layers, 55292476 parameters, 55292476 gradients, 81.3 GFLOPs
+    # YOLOv5l6-7b10-15 summary: 607 layers, 67432444 parameters, 67432444 gradients, 102.4 GFLOPs
     # YOLOv5l6-7b-scale1-4 summary: 627 layers, 54737980 parameters, 54737980 gradients, 82.7 GFLOPs
 
 if __name__ == '__main__':
