@@ -288,10 +288,9 @@ class C3c(nn.Module):
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
-        c__ = int(c1 * 0.75)
         self.cv1 = Conv(c1, c_, 1, 1)
         self.cv2 = Conv(c1, c_, 1, 1)
-        self.cv3 = Conv(c1, c__, 1)  # optional act=FReLU(c2)
+        self.cv3 = Conv(c1, c1, 1)  # optional act=FReLU(c2)
         self.m = nn.Sequential(*(CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)))
 
     def forward(self, x):
