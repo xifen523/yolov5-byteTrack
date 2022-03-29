@@ -262,14 +262,14 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
         if m in [Conv, Scale1, Scale2, Scale3, Scale5, Scale7, Scale8, GhostConv, Bottleneck, Bottleneck_alpha,
                  GhostBottleneck, SPP, SPPF, C2SPPF, DWConv, MixConv2d,
-                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3F, C3TR, C3SPP, C3Ghost,
+                 Focus, CrossConv, BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3c, C3F, C3TR, C3SPP, C3Ghost,
                  RepVGGBlock]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3F, C3TR, C3Ghost]:
+            if m in [BottleneckCSP, C2b, C2a, C2c, C3, C3a, C3b, C3c, C3F, C3TR, C3Ghost]:
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
@@ -324,7 +324,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5l6-7b-C3F.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='yolov5l6-7b.yaml', help='model.yaml')
     parser.add_argument('--batch-size', type=int, default=1, help='total batch size for all GPUs')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
