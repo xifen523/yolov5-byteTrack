@@ -4,7 +4,7 @@ from tqdm import tqdm
 from utils.general import Path, download, np, xyxy2xywhn
 
 # Make Directories
-dir = Path(yaml['path'])  # dataset root dir
+dir = Path('../datasets/Objects365')  # dataset root dir
 for p in 'images', 'labels':
     (dir / p).mkdir(parents=True, exist_ok=True)
     for q in 'train', 'val':
