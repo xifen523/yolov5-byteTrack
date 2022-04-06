@@ -110,7 +110,6 @@ class Scale7(nn.Module):
     # Scale down by 2x in width and height
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
-        c_ = c2 // 2  # hidden channels
         self.cv1 = Conv(c1, c1, 2, 2, 0)
         self.cv2 = Conv(c1, c2, 1, 1, 0)
 
@@ -122,7 +121,6 @@ class Scale8(nn.Module):
     # Scale down by 2x in width and height
     def __init__(self, c1, c2):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
-        c_ = c2 // 2  # hidden channels
         self.cv1 = Conv(c1, c1, 3, 2, 1)
         self.cv2 = Conv(c1, c2, 1, 1, 0)
 
@@ -427,9 +425,15 @@ class C2SPPF(nn.Module):
 # -----------------------------
 def conv_bn(in_channels, out_channels, kernel_size, stride, padding, groups=1):
     result = nn.Sequential()
-    result.add_module('conv', nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
-                                        kernel_size=kernel_size, stride=stride, padding=padding, groups=groups,
-                                        bias=False))
+    result.add_module(
+        'conv',
+        nn.Conv2d(in_channels=in_channels,
+                  out_channels=out_channels,
+                  kernel_size=kernel_size,
+                  stride=stride,
+                  padding=padding,
+                  groups=groups,
+                  bias=False))
     result.add_module('bn', nn.BatchNorm2d(num_features=out_channels))
 
     return result
@@ -441,10 +445,16 @@ import torch.nn.functional as F
 class SEBlock(nn.Module):
 
     def __init__(self, input_channels, internal_neurons):
-        super(SEBlock, self).__init__()
-        self.down = nn.Conv2d(in_channels=input_channels, out_channels=internal_neurons, kernel_size=1, stride=1,
+        super().__init__()
+        self.down = nn.Conv2d(in_channels=input_channels,
+                              out_channels=internal_neurons,
+                              kernel_size=1,
+                              stride=1,
                               bias=True)
-        self.up = nn.Conv2d(in_channels=internal_neurons, out_channels=input_channels, kernel_size=1, stride=1,
+        self.up = nn.Conv2d(in_channels=internal_neurons,
+                            out_channels=input_channels,
+                            kernel_size=1,
+                            stride=1,
                             bias=True)
         self.input_channels = input_channels
 
@@ -460,9 +470,18 @@ class SEBlock(nn.Module):
 
 class RepVGGBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3,
-                 stride=1, padding=1, dilation=1, groups=1, padding_mode='zeros', deploy=False, use_se=False):
-        super(RepVGGBlock, self).__init__()
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride=1,
+                 padding=1,
+                 dilation=1,
+                 groups=1,
+                 padding_mode='zeros',
+                 deploy=False,
+                 use_se=False):
+        super().__init__()
         self.deploy = deploy
         self.groups = groups
         self.in_channels = in_channels
@@ -479,18 +498,31 @@ class RepVGGBlock(nn.Module):
             self.se = nn.Identity()
 
         if deploy:
-            self.rbr_reparam = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+            self.rbr_reparam = nn.Conv2d(in_channels=in_channels,
+                                         out_channels=out_channels,
+                                         kernel_size=kernel_size,
                                          stride=stride,
-                                         padding=padding, dilation=dilation, groups=groups, bias=True,
+                                         padding=padding,
+                                         dilation=dilation,
+                                         groups=groups,
+                                         bias=True,
                                          padding_mode=padding_mode)
 
         else:
             self.rbr_identity = nn.BatchNorm2d(
                 num_features=in_channels) if out_channels == in_channels and stride == 1 else None
-            self.rbr_dense = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                     stride=stride, padding=padding, groups=groups)
-            self.rbr_1x1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride,
-                                   padding=padding_11, groups=groups)
+            self.rbr_dense = conv_bn(in_channels=in_channels,
+                                     out_channels=out_channels,
+                                     kernel_size=kernel_size,
+                                     stride=stride,
+                                     padding=padding,
+                                     groups=groups)
+            self.rbr_1x1 = conv_bn(in_channels=in_channels,
+                                   out_channels=out_channels,
+                                   kernel_size=1,
+                                   stride=stride,
+                                   padding=padding_11,
+                                   groups=groups)
             # print('RepVGG Block, identity = ', self.rbr_identity)
 
     def get_equivalent_kernel_bias(self):

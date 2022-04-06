@@ -22,9 +22,15 @@ for split, patches in [('train', 50 + 1), ('val', 43 + 1)]:
         download([f'{url}patch{i}.tar.gz' for i in range(patches)], dir=images, curl=True, delete=False, threads=1)
     elif split == 'val':
         download([f'{url}zhiyuan_objv2_{split}.json'], dir=dir, delete=False)  # annotations json
-        download([f'{url}images/v1/patch{i}.tar.gz' for i in range(15 + 1)], dir=images, curl=True, delete=False,
+        download([f'{url}images/v1/patch{i}.tar.gz' for i in range(15 + 1)],
+                 dir=images,
+                 curl=True,
+                 delete=False,
                  threads=1)
-        download([f'{url}images/v2/patch{i}.tar.gz' for i in range(16, patches)], dir=images, curl=True, delete=False,
+        download([f'{url}images/v2/patch{i}.tar.gz' for i in range(16, patches)],
+                 dir=images,
+                 curl=True,
+                 delete=False,
                  threads=1)
 
     # Move
