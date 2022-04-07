@@ -101,7 +101,7 @@ class ComputeLoss:
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
-        self.cp, self.cn = smooth_BCE(eps=0.02)  # positive, negative BCE targets
+        self.cp, self.cn = smooth_BCE(eps=0.0)  # positive, negative BCE targets
 
         # Focal loss
         g = h['fl_gamma']  # focal loss gamma
@@ -127,7 +127,7 @@ class ComputeLoss:
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
             b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
-            tobj = torch.zeros(pi.shape[:4], dtype=pi.dtype, device=self.device) + self.cn  # target obj
+            tobj = torch.zeros(pi.shape[:4], dtype=pi.dtype, device=self.device)  # target obj
 
             n = b.shape[0]  # number of targets
             if n:
@@ -142,7 +142,7 @@ class ComputeLoss:
                 lbox += (1.0 - iou).mean()  # iou loss
 
                 # Objectness
-                iou = iou.detach().clamp(0).type(tobj.dtype) * self.cp
+                iou = iou.detach().clamp(0).type(tobj.dtype)
                 if self.sort_obj_iou:
                     j = iou.argsort()
                     b, a, gj, gi, iou = b[j], a[j], gj[j], gi[j], iou[j]
