@@ -66,12 +66,11 @@ class Detect(nn.Module):
                 if self.inplace:
                     y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]) * self.stride[i]  # xy
                     y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
-                    y[..., 5:] = y[..., 5:] * (1 / 0.975)
-                # else:  # for YOLOv5 on AWS Inferentia https://github.com/ultralytics/yolov5/pull/2953
-                #     xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
-                #     xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
-                #     wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
-                #     y = torch.cat((xy, wh, conf), 4)
+                else:  # for YOLOv5 on AWS Inferentia https://github.com/ultralytics/yolov5/pull/2953
+                    xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
+                    xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
+                    wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
+                    y = torch.cat((xy, wh, conf), 4)
                 z.append(y.view(bs, -1, self.no))
 
         return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
