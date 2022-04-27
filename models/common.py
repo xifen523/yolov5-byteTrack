@@ -42,14 +42,13 @@ class Conv(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(c2)
-        # self.act = FReLU(c2) if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
-        self.act = nn.Identity()
+        self.act = FReLU(c2) if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
-        return torch.max(x, self.bn(self.conv(x)))
+        return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
-        return torch.max(x, self.conv(x))
+        return self.act(self.conv(x))
 
 
 class DWConv(Conv):
