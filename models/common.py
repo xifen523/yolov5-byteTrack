@@ -56,6 +56,24 @@ class DWConv(Conv):
         super().__init__(c1, c2, k, s, g=math.gcd(c1, c2), act=act)
 
 
+class ConvTranspose2d(nn.Module):
+    # Convolution Transpose 2d, i.e. nn.ConvTranspose2d(512, 512, 4, 2, 1, 0, 512)
+    def __init__(self, c1, c2, k=1, s=1, p1=0, p2=0, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
+        super().__init__()
+        self.conv = nn.ConvTranspose2d(c1, c2, k, s, p1, p2, groups=g, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+
+class DWConvTranspose2d(ConvTranspose2d):
+    # Depth-wise convolution class
+    def __init__(self, c1, c2, k=1, s=1, p1=0, p2=0, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
+        super().__init__(c1, c2, k, s, p1, p2, g=math.gcd(c1, c2), act=act)
+
+
 class TransformerLayer(nn.Module):
     # Transformer layer https://arxiv.org/abs/2010.11929 (LayerNorm layers removed for better performance)
     def __init__(self, c, num_heads):
