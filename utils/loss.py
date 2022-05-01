@@ -8,6 +8,7 @@ import torch.nn as nn
 
 from utils.metrics import bbox_iou
 from utils.torch_utils import de_parallel
+from PolyLoss import PolyLoss
 
 
 def smooth_BCE(eps=0.1):  # https://github.com/ultralytics/yolov3/issues/238#issuecomment-598028441
@@ -99,6 +100,7 @@ class ComputeLoss:
         # Define criteria
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
+        self.poly_cls = PolyLoss(softmax=True, reduction='mean')
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
@@ -154,7 +156,8 @@ class ComputeLoss:
                 if self.nc > 1:  # cls loss (only if multiple classes)
                     t = torch.full_like(pcls, self.cn, device=self.device)  # targets
                     t[range(n), tcls[i]] = self.cp
-                    lcls += self.BCEcls(pcls, t)  # BCE
+                    # lcls += self.BCEcls(pcls, t)  # BCE
+                    lcls += self.poly_cls(pcls, t) / self.nc  # PolyLoss
 
                 # Append targets to text file
                 # with open('targets.txt', 'a') as file:
