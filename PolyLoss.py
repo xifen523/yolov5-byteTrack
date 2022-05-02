@@ -166,3 +166,27 @@ class PolyLoss2(_Loss):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(eps={self.eps}, reduction='{self.reduction}')"
+
+
+if __name__ == '__main__':
+    # Example of target in one-hot encoded format
+    B, C, H, W = 16, 100, 3, 3
+    input = torch.rand(B, C, H, W, requires_grad=True)
+    target = torch.randint(low=0, high=C - 1, size=(B, H, W)).long()
+    target_one_hot = to_one_hot(target[:, None, ...], num_classes=C)
+    print(PolyLoss(softmax=True, reduction='mean')(input, target_one_hot))
+    print(poly_loss2(input, target, eps=1.0))
+    print(torch.nn.CrossEntropyLoss()(input, target))
+    print(torch.nn.BCEWithLogitsLoss()(input, target_one_hot))
+
+
+    # Example of target in one-hot encoded format
+    B, C = 16, 100
+    input = torch.rand(B, C, requires_grad=True)
+    target = torch.randint(low=0, high=C - 1, size=(B,)).long()
+    target_one_hot = to_one_hot(target[:, None, ...], num_classes=C)
+    print(PolyLoss(softmax=True, reduction='mean')(input, target_one_hot))
+    print(poly_loss2(input, target, eps=1.0))
+    print(torch.nn.CrossEntropyLoss()(input, target))
+    print(torch.nn.BCEWithLogitsLoss()(input, target_one_hot))
+

@@ -100,7 +100,8 @@ class ComputeLoss:
         # Define criteria
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
-        self.poly_cls = PolyLoss(softmax=True, reduction='mean')
+        self.poly1 = PolyLoss()
+        self.ce1 = nn.CrossEntropyLoss()
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
@@ -157,7 +158,12 @@ class ComputeLoss:
                     t = torch.full_like(pcls, self.cn, device=self.device)  # targets
                     t[range(n), tcls[i]] = self.cp
                     # lcls += self.BCEcls(pcls, t)  # BCE
-                    lcls += self.poly_cls(pcls, t) / self.nc  # PolyLoss
+                    lcls += self.poly1(pcls.sigmoid(), t)  # PolyLoss
+
+                    # nn.BCEWithLogitsLoss()(pcls, t)
+                    # nn.BCELoss()(pcls.sigmoid(), t)
+                    # nn.CrossEntropyLoss()(pcls.sigmoid(), tcls[i])
+                    # PolyLoss()(pcls.sigmoid(), t)
 
                 # Append targets to text file
                 # with open('targets.txt', 'a') as file:
