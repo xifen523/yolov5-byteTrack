@@ -159,8 +159,8 @@ class ComputeLoss:
                     # t[range(n), tcls[i]] = self.cp
 
                     # lcls += self.BCEcls(pcls, t)  # BCE
-                    # lcls += self.poly1(pcls.sigmoid(), t)  # PolyLoss
-                    lcls += self.ce1(pcls.sigmoid(), tcls[i])
+                    lcls += self.poly1(pcls.sigmoid(), t)  # PolyLoss
+                    # lcls += self.ce1(pcls.sigmoid(), tcls[i])
 
                     # nn.BCEWithLogitsLoss()(pcls, t)
                     # nn.BCELoss()(pcls.sigmoid(), t)
