@@ -155,8 +155,8 @@ class ComputeLoss:
 
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)
-                    # t = torch.full_like(pcls, self.cn, device=self.device)  # targets
-                    # t[range(n), tcls[i]] = self.cp
+                    t = torch.full_like(pcls, self.cn, device=self.device)  # targets
+                    t[range(n), tcls[i]] = self.cp
 
                     # lcls += self.BCEcls(pcls, t)  # BCE
                     lcls += self.poly1(pcls.sigmoid(), t)  # PolyLoss
