@@ -30,7 +30,7 @@ import yaml
 from torch.cuda import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import SGD, Adam, AdamW, lr_scheduler
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -466,7 +466,6 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                         callbacks.run('on_fit_epoch_end', list(mloss) + list(results) + lr, epoch, best_fitness, fi)
 
         callbacks.run('on_train_end', last, best, plots, epoch, results)
-        LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
     torch.cuda.empty_cache()
     return results
