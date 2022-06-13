@@ -101,6 +101,11 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     # Config
     plots = not evolve and not opt.noplots  # create plots
     cuda = device.type != 'cpu'
+
+    print(f'RANK IS {RANK}')
+    print(f'LOCAL_RANK IS {LOCAL_RANK}')
+    print(f'WORLD_SIZE IS {WORLD_SIZE}')
+
     init_seeds(1 + RANK)
     with torch_distributed_zero_first(LOCAL_RANK):
         data_dict = data_dict or check_dataset(data)  # check if None
