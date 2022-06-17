@@ -298,3 +298,11 @@ professional support requests please visit [https://ultralytics.com/contact](htt
 
 [assets]: https://github.com/ultralytics/yolov5/releases
 [tta]: https://github.com/ultralytics/yolov5/issues/303
+
+
+
+#### my shell 
+进行简单的det dome测试
+1. `python detect.py --source .\videos\CH1.mp4 --weights your_weights_path --conf 0.1 --agnostic-nms --save-txt --save-conf --img-size 1280 --classes 2 5 7 --device 0 --view-img`
+进行简单的track dome测试
+2. `python dome.py--conf 0.1 --agnostic-nms --save-txt --save-conf --img-size 1280   --classes 2 5 7 --device 0 --view_img --save_result --weights your_weights_path --source path`
